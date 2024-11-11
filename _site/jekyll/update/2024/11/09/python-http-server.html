@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>HTTP Servers and Related Concepts | Siddhant Somani</title>
+<meta name="generator" content="Jekyll v3.10.0" />
+<meta property="og:title" content="HTTP Servers and Related Concepts" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="I generally try to build mental models of the tech that I work with. Some (non mutually exclusive) ways people build mental models: Read blogs or books, watch youtube videos Take a course Build an application/mini-project Code things up from scratch (.. scratch is subjective here)" />
+<meta property="og:description" content="I generally try to build mental models of the tech that I work with. Some (non mutually exclusive) ways people build mental models: Read blogs or books, watch youtube videos Take a course Build an application/mini-project Code things up from scratch (.. scratch is subjective here)" />
+<link rel="canonical" href="http://localhost:4000/jekyll/update/2024/11/09/python-http-server.html" />
+<meta property="og:url" content="http://localhost:4000/jekyll/update/2024/11/09/python-http-server.html" />
+<meta property="og:site_name" content="Siddhant Somani" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2024-11-09T19:05:00-08:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="HTTP Servers and Related Concepts" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-11-09T19:05:00-08:00","datePublished":"2024-11-09T19:05:00-08:00","description":"I generally try to build mental models of the tech that I work with. Some (non mutually exclusive) ways people build mental models: Read blogs or books, watch youtube videos Take a course Build an application/mini-project Code things up from scratch (.. scratch is subjective here)","headline":"HTTP Servers and Related Concepts","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/jekyll/update/2024/11/09/python-http-server.html"},"url":"http://localhost:4000/jekyll/update/2024/11/09/python-http-server.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="Siddhant Somani" /></head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">Siddhant Somani</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/about/">About</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">HTTP Servers and Related Concepts</h1>
+    <p class="post-meta">
+      <time class="dt-published" datetime="2024-11-09T19:05:00-08:00" itemprop="datePublished">Nov 9, 2024
+      </time></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <p>I generally try to build mental models of the tech that I work with.
+Some (non mutually exclusive) ways people build mental models:</p>
+<ul>
+  <li>Read blogs or books, watch youtube videos</li>
+  <li>Take a course</li>
+  <li>Build an application/mini-project</li>
+  <li>Code things up from scratch (.. <em>scratch</em> is subjective here)</li>
+</ul>
+
+<p>I am a big <em>believer</em> in the power of implementing ideas to understand a concept. The simpler our abstractions, the better. I’m not claiming that I always do it. I <em>wish</em> I could..</p>
+
+<p>The idea is not to build something production-grade. The objective of this effort is to build an <em>understanding</em>. When you set yourself on a path towards understanding, don’t let yourself get distracted by tangential optimizations. It’s good to identify them, but note them down and move on. Don’t fall into a rabbit hole, unless your objective explicitly defines it.</p>
+
+<p>Coming back to the point..</p>
+
+<h2 id="lets-build-an-http-server">Let’s build an HTTP server.</h2>
+
+<p>An HTTP server generally runs on a different machine on the network (internet/LAN). We, therefore, need the ability to send and receive bytes from/to the server over a network. We will use sockets as our underyling OS abstraction to accomplish our objective.</p>
+
+<p>FYI: This maybe news to you, it definitely was to me when I first learnt about it.
+HTTP is <em>just</em> text. Yep - so much talk about HTTP/protocols, networking, and it’s actually <em>just</em> text.</p>
+
+<p>A simple HTTP request looks like this</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>GET /about.html HTTP/1.0  &lt;--  Specify the resource that we want aka we want to load the about.html page on this server.
+User-Agent: Mozilla/5.0   &lt;-- Headers start from the next line.
+</code></pre></div></div>
+
+<p>Sample code for a HTTP server:</p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="n">import</span> <span class="n">socket</span>
+
+<span class="c1"># A machine has an IP address that is it's unique address.</span>
+<span class="c1"># Think of a port as a specific sub-address on that machine, where our server process is actively waiting for requests. </span>
+
+<span class="no">SERVER_HOST</span> <span class="o">=</span> <span class="s1">'127.0.0.1'</span>
+<span class="no">SERVER_PORT</span> <span class="o">=</span> <span class="mi">12345</span>
+
+<span class="c1"># create a socket</span>
+<span class="n">server_socket</span> <span class="o">=</span> <span class="n">socket</span><span class="p">.</span><span class="nf">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="no">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="no">SOCK_STREAM</span><span class="p">)</span> <span class="c1"># IPv4, TCP</span>
+<span class="n">server_socket</span><span class="p">.</span><span class="nf">setsockopt</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="no">SOL_SOCKET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="no">SO_REUSEADDR</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="c1"># set socket options to allow port re-use upon start-stop of the server.</span>
+<span class="c1"># You do not want to change the port in the code everytime you start the server.</span>
+
+<span class="c1"># bind the socket to our predefined host and port</span>
+<span class="n">server_socket</span><span class="p">.</span><span class="nf">bind</span><span class="p">((</span><span class="no">SERVER_HOST</span><span class="p">,</span> <span class="no">SERVER_PORT</span><span class="p">))</span> <span class="c1"># bind takes a single tuple argument</span>
+
+<span class="n">server_socket</span><span class="p">.</span><span class="nf">listen</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="c1"># 2 here is the backlog size.</span>
+<span class="c1"># It's the answer to the question - "How many clients are we okay to put in a waiting state before we start rejecting requests?"</span>
+<span class="c1"># What's our incoming client queue size? If there are more clients than size, we start refusing connections</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="s2">"Server is now listening on port {SERVER_PORT}"</span><span class="p">)</span>
+
+<span class="k">while</span> <span class="no">True</span><span class="p">:</span>
+    <span class="c1"># Infinitely wait for clients to connect</span>
+    <span class="n">incoming_client_connection</span><span class="p">,</span> <span class="n">client_address</span> <span class="o">=</span> <span class="n">server_socket</span><span class="p">.</span><span class="nf">accept</span><span class="p">()</span>
+
+    <span class="c1"># Manage client request</span>
+    <span class="n">request</span> <span class="o">=</span> <span class="n">incoming_client_connection</span><span class="p">.</span><span class="nf">recv</span><span class="p">(</span><span class="mi">1024</span><span class="p">).</span><span class="nf">decode</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+
+    <span class="c1"># Send HTTP response</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="s2">"HTTP/1.0 200 OK</span><span class="se">\n\n</span><span class="s2">Hello World "</span>
+    <span class="n">incoming_client_connection</span><span class="p">.</span><span class="nf">sendall</span><span class="p">(</span><span class="n">response</span><span class="p">.</span><span class="nf">encode</span><span class="p">())</span>
+    <span class="n">incoming_client_connection</span><span class="p">.</span><span class="nf">close</span><span class="p">()</span>
+
+<span class="n">server_socket</span><span class="p">.</span><span class="nf">close</span><span class="p">()</span></code></pre></figure>
+
+<h4 id="notes">Notes</h4>
+<ul>
+  <li>
+    <p>How are files served?
+  The GET request will basically mention the name of the file (aka resource eg /index.html). Our server will open the file, retrieve all contents, and send them over to the client using an encoded string.
+  The client will basically render the file (via the looong decoded string) and show the output to the user.</p>
+  </li>
+  <li>
+    <p>Blocking vs. Non-blocking:
+  By default, accept() is blocking, meaning it waits until a client connects.
+  For non-blocking sockets, you can use <code class="language-plaintext highlighter-rouge">server_socket.setblocking(False)</code> or use <code class="language-plaintext highlighter-rouge">select()</code>/<code class="language-plaintext highlighter-rouge">poll()</code> for multiplexing.</p>
+  </li>
+  <li>
+    <p>Performance:
+  A higher backlog does not guarantee better performance; it’s just a queue size. If your server cannot handle many connections quickly enough, consider optimizing the server (e.g., using threading, multiprocessing, or asynchronous programming with asyncio).</p>
+  </li>
+</ul>
+
+<p><strong>Sockets</strong>:
+A socket is basically an abstraction provided by the operating system that enables you to, both, <em>send</em> and <em>receive</em> bytes through a network. 
+Our above exercise to build a simple server, allows us to build a mental model of what HTTP is, and how a simple server works (and handles client requests).
+When you went through the code, you saw that we used an abstraction (sockets) to build basically the whole server infrastructure.
+And this would then beg the question, what is a socket? Why use it?</p>
+
+<p>Sockets (among others) are a primary method of IPC (Inter process communication). They are also a primary method of IPC over network.
+Note: Every socket internally is basically associated with a file descriptor. (File descriptors are the next level of abstraction.)</p>
+
+<p>A simple mental model of the problem that’s being solved here is - think of a server process on machine serverMachine, and a client process on clientMachine. We want to enable communication between them (across some network).</p>
+
+<p>Quick step by step walkthrough:</p>
+<ul>
+  <li>Server machine starts up, loads the server program, allocates the given port, creates a “socket” and starts <em>listening</em>.</li>
+  <li>Think of a socket as a file on the file system, that can be read by and written to by the server program (process).</li>
+  <li>Client machine boots up, loads the client program, allocates an ephemeral port (and a socket) on the client machine, and sends out a connection request to the server.</li>
+  <li>When the server gets a connection request, there’s the general TCP 3-way handshake, and the client is then said to have an active connection.</li>
+  <li>For every successful connection on the server, the server creates a new socket (with a new file descriptor) that’s bound to the same port.</li>
+  <li>On the server, therefore, every client has a separate socket (and transitively a FD) associated with it, that the server uses for communication.</li>
+</ul>
+
+<p>I implore you to read more about this. Ask yourself questions. Then go and find answers to these questions. That’s the only way to build true understanding.</p>
+
+  </div><a class="u-url" href="/jekyll/update/2024/11/09/python-http-server.html" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Siddhant Somani</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li class="p-name">Siddhant Somani</li><li><a class="u-email" href="mailto:siddhantsomani@gmail.com">siddhantsomani@gmail.com</a></li></ul>
+      </div>
+
+      <div class="footer-col footer-col-2"><ul class="social-media-list"><li><a href="https://github.com/siddhantsomani"><svg class="svg-icon"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg> <span class="username">siddhantsomani</span></a></li><li><a href="https://www.twitter.com/siddhantsomani"><svg class="svg-icon"><use xlink:href="/assets/minima-social-icons.svg#twitter"></use></svg> <span class="username">siddhantsomani</span></a></li></ul>
+</div>
+
+      <div class="footer-col footer-col-3">
+        <p>Siddhant Somani&#39;s blog</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>

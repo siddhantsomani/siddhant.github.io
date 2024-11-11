@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.10.0">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-11-10T23:56:41-08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Siddhant Somani</title><subtitle>Siddhant Somani&apos;s blog</subtitle><entry><title type="html">HTTP Servers and Related Concepts</title><link href="http://localhost:4000/jekyll/update/2024/11/09/python-http-server.html" rel="alternate" type="text/html" title="HTTP Servers and Related Concepts" /><published>2024-11-09T19:05:00-08:00</published><updated>2024-11-09T19:05:00-08:00</updated><id>http://localhost:4000/jekyll/update/2024/11/09/python-http-server</id><content type="html" xml:base="http://localhost:4000/jekyll/update/2024/11/09/python-http-server.html"><![CDATA[<p>I generally try to build mental models of the tech that I work with.
+Some (non mutually exclusive) ways people build mental models:</p>
+<ul>
+  <li>Read blogs or books, watch youtube videos</li>
+  <li>Take a course</li>
+  <li>Build an application/mini-project</li>
+  <li>Code things up from scratch (.. <em>scratch</em> is subjective here)</li>
+</ul>
+
+<p>I am a big <em>believer</em> in the power of implementing ideas to understand a concept. The simpler our abstractions, the better. I’m not claiming that I always do it. I <em>wish</em> I could..</p>
+
+<p>The idea is not to build something production-grade. The objective of this effort is to build an <em>understanding</em>. When you set yourself on a path towards understanding, don’t let yourself get distracted by tangential optimizations. It’s good to identify them, but note them down and move on. Don’t fall into a rabbit hole, unless your objective explicitly defines it.</p>
+
+<p>Coming back to the point..</p>
+
+<h2 id="lets-build-an-http-server">Let’s build an HTTP server.</h2>
+
+<p>An HTTP server generally runs on a different machine on the network (internet/LAN). We, therefore, need the ability to send and receive bytes from/to the server over a network. We will use sockets as our underyling OS abstraction to accomplish our objective.</p>
+
+<p>FYI: This maybe news to you, it definitely was to me when I first learnt about it.
+HTTP is <em>just</em> text. Yep - so much talk about HTTP/protocols, networking, and it’s actually <em>just</em> text.</p>
+
+<p>A simple HTTP request looks like this</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>GET /about.html HTTP/1.0  &lt;--  Specify the resource that we want aka we want to load the about.html page on this server.
+User-Agent: Mozilla/5.0   &lt;-- Headers start from the next line.
+</code></pre></div></div>
+
+<p>Sample code for a HTTP server:</p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="n">import</span> <span class="n">socket</span>
+
+<span class="c1"># A machine has an IP address that is it's unique address.</span>
+<span class="c1"># Think of a port as a specific sub-address on that machine, where our server process is actively waiting for requests. </span>
+
+<span class="no">SERVER_HOST</span> <span class="o">=</span> <span class="s1">'127.0.0.1'</span>
+<span class="no">SERVER_PORT</span> <span class="o">=</span> <span class="mi">12345</span>
+
+<span class="c1"># create a socket</span>
+<span class="n">server_socket</span> <span class="o">=</span> <span class="n">socket</span><span class="p">.</span><span class="nf">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="no">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="no">SOCK_STREAM</span><span class="p">)</span> <span class="c1"># IPv4, TCP</span>
+<span class="n">server_socket</span><span class="p">.</span><span class="nf">setsockopt</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="no">SOL_SOCKET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="no">SO_REUSEADDR</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="c1"># set socket options to allow port re-use upon start-stop of the server.</span>
+<span class="c1"># You do not want to change the port in the code everytime you start the server.</span>
+
+<span class="c1"># bind the socket to our predefined host and port</span>
+<span class="n">server_socket</span><span class="p">.</span><span class="nf">bind</span><span class="p">((</span><span class="no">SERVER_HOST</span><span class="p">,</span> <span class="no">SERVER_PORT</span><span class="p">))</span> <span class="c1"># bind takes a single tuple argument</span>
+
+<span class="n">server_socket</span><span class="p">.</span><span class="nf">listen</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="c1"># 2 here is the backlog size.</span>
+<span class="c1"># It's the answer to the question - "How many clients are we okay to put in a waiting state before we start rejecting requests?"</span>
+<span class="c1"># What's our incoming client queue size? If there are more clients than size, we start refusing connections</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="s2">"Server is now listening on port {SERVER_PORT}"</span><span class="p">)</span>
+
+<span class="k">while</span> <span class="no">True</span><span class="p">:</span>
+    <span class="c1"># Infinitely wait for clients to connect</span>
+    <span class="n">incoming_client_connection</span><span class="p">,</span> <span class="n">client_address</span> <span class="o">=</span> <span class="n">server_socket</span><span class="p">.</span><span class="nf">accept</span><span class="p">()</span>
+
+    <span class="c1"># Manage client request</span>
+    <span class="n">request</span> <span class="o">=</span> <span class="n">incoming_client_connection</span><span class="p">.</span><span class="nf">recv</span><span class="p">(</span><span class="mi">1024</span><span class="p">).</span><span class="nf">decode</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+
+    <span class="c1"># Send HTTP response</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="s2">"HTTP/1.0 200 OK</span><span class="se">\n\n</span><span class="s2">Hello World "</span>
+    <span class="n">incoming_client_connection</span><span class="p">.</span><span class="nf">sendall</span><span class="p">(</span><span class="n">response</span><span class="p">.</span><span class="nf">encode</span><span class="p">())</span>
+    <span class="n">incoming_client_connection</span><span class="p">.</span><span class="nf">close</span><span class="p">()</span>
+
+<span class="n">server_socket</span><span class="p">.</span><span class="nf">close</span><span class="p">()</span></code></pre></figure>
+
+<h4 id="notes">Notes</h4>
+<ul>
+  <li>
+    <p>How are files served?
+  The GET request will basically mention the name of the file (aka resource eg /index.html). Our server will open the file, retrieve all contents, and send them over to the client using an encoded string.
+  The client will basically render the file (via the looong decoded string) and show the output to the user.</p>
+  </li>
+  <li>
+    <p>Blocking vs. Non-blocking:
+  By default, accept() is blocking, meaning it waits until a client connects.
+  For non-blocking sockets, you can use <code class="language-plaintext highlighter-rouge">server_socket.setblocking(False)</code> or use <code class="language-plaintext highlighter-rouge">select()</code>/<code class="language-plaintext highlighter-rouge">poll()</code> for multiplexing.</p>
+  </li>
+  <li>
+    <p>Performance:
+  A higher backlog does not guarantee better performance; it’s just a queue size. If your server cannot handle many connections quickly enough, consider optimizing the server (e.g., using threading, multiprocessing, or asynchronous programming with asyncio).</p>
+  </li>
+</ul>
+
+<p><strong>Sockets</strong>:
+A socket is basically an abstraction provided by the operating system that enables you to, both, <em>send</em> and <em>receive</em> bytes through a network. 
+Our above exercise to build a simple server, allows us to build a mental model of what HTTP is, and how a simple server works (and handles client requests).
+When you went through the code, you saw that we used an abstraction (sockets) to build basically the whole server infrastructure.
+And this would then beg the question, what is a socket? Why use it?</p>
+
+<p>Sockets (among others) are a primary method of IPC (Inter process communication). They are also a primary method of IPC over network.
+Note: Every socket internally is basically associated with a file descriptor. (File descriptors are the next level of abstraction.)</p>
+
+<p>A simple mental model of the problem that’s being solved here is - think of a server process on machine serverMachine, and a client process on clientMachine. We want to enable communication between them (across some network).</p>
+
+<p>Quick step by step walkthrough:</p>
+<ul>
+  <li>Server machine starts up, loads the server program, allocates the given port, creates a “socket” and starts <em>listening</em>.</li>
+  <li>Think of a socket as a file on the file system, that can be read by and written to by the server program (process).</li>
+  <li>Client machine boots up, loads the client program, allocates an ephemeral port (and a socket) on the client machine, and sends out a connection request to the server.</li>
+  <li>When the server gets a connection request, there’s the general TCP 3-way handshake, and the client is then said to have an active connection.</li>
+  <li>For every successful connection on the server, the server creates a new socket (with a new file descriptor) that’s bound to the same port.</li>
+  <li>On the server, therefore, every client has a separate socket (and transitively a FD) associated with it, that the server uses for communication.</li>
+</ul>
+
+<p>I implore you to read more about this. Ask yourself questions. Then go and find answers to these questions. That’s the only way to build true understanding.</p>]]></content><author><name></name></author><category term="jekyll" /><category term="update" /><summary type="html"><![CDATA[I generally try to build mental models of the tech that I work with. Some (non mutually exclusive) ways people build mental models: Read blogs or books, watch youtube videos Take a course Build an application/mini-project Code things up from scratch (.. scratch is subjective here)]]></summary></entry><entry><title type="html">Welcome to Jekyll!</title><link href="http://localhost:4000/jekyll/update/2024/11/09/welcome-to-jekyll.html" rel="alternate" type="text/html" title="Welcome to Jekyll!" /><published>2024-11-09T19:05:00-08:00</published><updated>2024-11-09T19:05:00-08:00</updated><id>http://localhost:4000/jekyll/update/2024/11/09/welcome-to-jekyll</id><content type="html" xml:base="http://localhost:4000/jekyll/update/2024/11/09/welcome-to-jekyll.html"><![CDATA[<p>You’ll find this post in your <code class="language-plaintext highlighter-rouge">_posts</code> directory. Go ahead and edit it and re-build the site to see your changes. You can rebuild the site in many different ways, but the most common way is to run <code class="language-plaintext highlighter-rouge">jekyll serve</code>, which launches a web server and auto-regenerates your site when a file is updated.</p>
+
+<p>Jekyll requires blog post files to be named according to the following format:</p>
+
+<p><code class="language-plaintext highlighter-rouge">YEAR-MONTH-DAY-title.MARKUP</code></p>
+
+<p>Where <code class="language-plaintext highlighter-rouge">YEAR</code> is a four-digit number, <code class="language-plaintext highlighter-rouge">MONTH</code> and <code class="language-plaintext highlighter-rouge">DAY</code> are both two-digit numbers, and <code class="language-plaintext highlighter-rouge">MARKUP</code> is the file extension representing the format used in the file. After that, include the necessary front matter. Take a look at the source for this post to get an idea about how it works.</p>
+
+<p>Jekyll also offers powerful support for code snippets:</p>
+
+<figure class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">def</span> <span class="nf">print_hi</span><span class="p">(</span><span class="nb">name</span><span class="p">)</span>
+  <span class="nb">puts</span> <span class="s2">"Hi, </span><span class="si">#{</span><span class="nb">name</span><span class="si">}</span><span class="s2">"</span>
+<span class="k">end</span>
+<span class="n">print_hi</span><span class="p">(</span><span class="s1">'Tom'</span><span class="p">)</span>
+<span class="c1">#=&gt; prints 'Hi, Tom' to STDOUT.</span></code></pre></figure>
+
+<p>Check out the <a href="https://jekyllrb.com/docs/home">Jekyll docs</a> for more info on how to get the most out of Jekyll. File all bugs/feature requests at <a href="https://github.com/jekyll/jekyll">Jekyll’s GitHub repo</a>. If you have questions, you can ask them on <a href="https://talk.jekyllrb.com/">Jekyll Talk</a>.</p>]]></content><author><name></name></author><category term="jekyll" /><category term="update" /><summary type="html"><![CDATA[You’ll find this post in your _posts directory. Go ahead and edit it and re-build the site to see your changes. You can rebuild the site in many different ways, but the most common way is to run jekyll serve, which launches a web server and auto-regenerates your site when a file is updated.]]></summary></entry></feed>
