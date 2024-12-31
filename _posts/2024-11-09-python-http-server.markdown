@@ -104,5 +104,3 @@ Quick step by step walkthrough:
 - When the server gets a connection request, there's the general TCP 3-way handshake, and the client is then said to have an active connection.
 - For every successful connection on the server, the server creates a new socket (with a new file descriptor) that's bound to the same port.
 - On the server, therefore, every client has a separate socket (and transitively a FD) associated with it, that the server uses for communication.
-
-I implore you to read more about this. Ask yourself questions. Then go and find answers to these questions. That's the only way to build true understanding.
